@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDLAs geografigåter</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    
+    <style>
+        :root {
+            --primary: #2A1C5E;
+            --accent: #63F293;
+            --bg: #f4f4f9;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; padding: 0; background-color: var(--bg); 
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* Velkomstskjerm */
+        #welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; text-align: center; padding: 20px; box-sizing: border-box;
+        }
+
+        #welcome-screen h1 { color: var(--accent); font-size: 2.5em; margin-bottom: 0.5em; }
+        #welcome-screen p { font-size: 1.2em; max-width: 600px; margin-bottom: 2em; }
+
+        /* Hovedlayout */
+        #game-container { display: none; width: 100%; max-width: 850px; padding: 20px; box-sizing: border-box; }
+
+        #game-header { 
+            display: flex; justify-content: space-between; 
+            background: white; padding: 15px 25px; border-radius: 50px;
+            margin-bottom: 20px; color: var(--primary); font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        #riddle-container { 
+            background: white; padding: 25px; border-radius: 15px; 
+            margin-bottom: 20px; font-size: 1.2em; border-left: 8px solid var(--accent);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        #map { 
+            height: 450px; width: 100%; border-radius: 15px; 
+            border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Knapper */
+        .btn { 
+            padding: 15px 40px; font-size: 1.1em; cursor: pointer; 
+            border: none; border-radius: 50px; font-weight: bold; 
+            transition: all 0.2s; background: var(--primary); color: white;
+            margin-top: 20px;
+        }
+
+        .btn:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.2); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        #next-btn { background: var(--accent); color: var(--primary); display: none; }
+
+        /* Resultat og ferdigskjerm */
+        #result { margin-top: 15px; font-size: 1.1em; font-weight: bold; min-height: 1.5em; }
+
+        #game-over { 
+            display: none; background: white; padding: 60px; border-radius: 25px; 
+            text-align: center; margin-top: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-screen">
+        <h1>Velkommen til NDLAs geografigåter!</h1>
+        <p>Klarer du å finne medarbeiderne dine?</p>
+        <p>PS: Du kan zoome i kartet før du velger hvor du vil plassere nålen.</p>
+        <button class="btn" style="background: var(--accent); color: var(--primary);" onclick="startGame()">Start spillet!</button>
+    </div>
+
+    <div id="game-container">
+        <div id="game-header">
+            <span id="level-counter">Nivå: 1 / 5</span>
+            <span id="score-counter">Poeng: 0</span>
+        </div>
+
+        <div id="riddle-container">Laster gåte...</div>
+        
+        <div id="map"></div>
+
+        <div style="text-align: center;">
+            <button id="guess-btn" class="btn" onclick="sjekkSvar()" disabled>Lås inn svaret mitt!</button>
+            <button id="next-btn" class="btn" onclick="nesteNiva()">Neste oppgave ➔</button>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <div id="game-over">
+        <h2>🎉 Fantastisk innsats!</h2>
+        <p>Din totale poengsum ble:</p>
+        <h1 id="final-score" style="font-size: 4em; color: var(--primary); margin: 10px 0;">0</h1>
+        <button class="btn" onclick="location.reload()">Spill igjen</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    
+    <script>
+        // Oppgavene
+        const gater = [
+            { riddle: "Først må du finne sjefen. Han er ofte ute på sykkel, men enda oftere sitter han på kontoret.", lat: 60.3867, lng: 5.3324, navn: "Sigurd (Vestlandshuset i Bergen)" },
+            { riddle: "Han er sjefsbaderen i NDLA og det blir alltid god stemning når han finner fram gitaren. I dag sitter han på hjemmekontor. Hvor finner du han da?", lat: 58.8925, lng: 5.6562, navn: "Bjørn Magne (Sola)" },
+            { riddle: "Han bor nok lengst unna skolen han er ansatt på. Hvem (!?), og hvor er det han gjemmer seg på hjemmekontor (for du må lete hjemme hos han)?", lat: 59.7946, lng: 5.7275, navn: "Guttorm (Sæbøvik)" },
+            { riddle: "På dette stedet finner du kanskje verdens ferskeste NDLA-medarbeider. Men hun sitter ikke alene. For her er damene samlokaliserte, slik at de kan drikke saft og jobbe på for NDLA. Hvor skal vi?", lat: 61.2291, lng: 7.0984, navn: "Sogndal-gjengen" },
+            { riddle: "Det er usikkert om han flyttet hit for å drive Bed and/in Breakfast, men et fint sted er det unektelig. Korr ska vi reis?", lat: 63.8418, lng: 11.3882, navn: "Thomas Bedin (Røra på Inderøya)" }
+        ];
+
+        let index = 0;
+        let totalScore = 0;
+        let map, marker, circle, line;
+
+        // Denne funksjonen starter spillet
+        function startGame() {
+            console.log("Starter spillet...");
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+            
+            // Lag kartet
+            map = L.map('map').setView([60.47, 8.46], 5);
+            
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Gjør det mulig å klikke i kartet
+            map.on('click', function(e) {
+                if (document.getElementById('guess-btn').style.display !== "none") {
+                    plasserMarker(e.latlng);
+                }
+            });
+
+            oppdaterGrensesnitt();
+        }
+
+        function plasserMarker(latlng) {
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+            document.getElementById('guess-btn').disabled = false;
+        }
+
+        function oppdaterGrensesnitt() {
+            const oppgave = gater[index];
+            document.getElementById('riddle-container').innerHTML = `<strong>Hvor skal vi?</strong><br>${oppgave.riddle}`;
+            document.getElementById('level-counter').innerText = `Nivå: ${index + 1} / ${gater.length}`;
+            document.getElementById('result').innerText = "";
+            document.getElementById('guess-btn').style.display = "inline-block";
+            document.getElementById('guess-btn').disabled = true;
+            document.getElementById('next-btn').style.display = "none";
+            
+            if (marker) map.removeLayer(marker);
+            if (circle) map.removeLayer(circle);
+            if (line) map.removeLayer(line);
+            marker = null;
+            map.setView([60.47, 8.46], 5);
+        }
+
+        function sjekkSvar() {
+            const oppgave = gater[index];
+            const avstandMeter = map.distance(marker.getLatLng(), [oppgave.lat, oppgave.lng]);
+            const avstandKm = avstandMeter / 1000;
+            
+            const poeng = Math.max(0, 100 - Math.floor(avstandKm * 2));
+            totalScore += poeng;
+
+            // Vis fasit på kartet
+            circle = L.circle([oppgave.lat, oppgave.lng], { 
+                color: '#63F293', fillColor: '#63F293', fillOpacity: 0.5, radius: 2000 
+            }).addTo(map);
+            
+            line = L.polyline([marker.getLatLng(), [oppgave.lat, oppgave.lng]], { 
+                color: '#2A1C5E', dashArray: '5, 10', weight: 2 
+            }).addTo(map);
+            
+            // Zoom inn så vi ser begge punktene
+            const group = new L.featureGroup([marker, circle]);
+            map.fitBounds(group.getBounds().pad(0.2));
+
+            document.getElementById('result').innerHTML = `Fasit: <b>${oppgave.navn}</b><br>Bommen var på ${avstandKm.toFixed(1)} km. Du fikk ${poeng} poeng!`;
+            document.getElementById('score-counter').innerText = `Poeng: ${totalScore}`;
+            
+            document.getElementById('guess-btn').style.display = "none";
+            document.getElementById('next-btn').style.display = "inline-block";
+        }
+
+        function nesteNiva() {
+            index++;
+            if (index < gater.length) {
+                oppdaterGrensesnitt();
+            } else {
+                document.getElementById('game-container').style.display = 'none';
+                document.getElementById('game-over').style.display = 'block';
+                document.getElementById('final-score').innerText = totalScore;
+            }
+        }
+    </script>
+</body>
+</html>
