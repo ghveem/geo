@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geo</title>
+  <style>
+    :root {
+      --primary: #2A1C5E;
+      --accent: #63F293;
+      --bg: #f4f4f9;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Header – same pattern as game-header in subpages */
+    #site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 15px 25px;
+      border-radius: 50px;
+      margin: 20px;
+      color: var(--primary);
+      font-weight: bold;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      width: 100%;
+      max-width: 850px;
+    }
+
+    #site-header h1 { font-size: 1.4em; color: var(--primary); }
+    #site-header span { font-size: 0.85em; opacity: 0.55; }
+
+    /* Main container */
+    #game-container {
+      width: 100%;
+      max-width: 850px;
+      padding: 0 20px 40px;
+    }
+
+    .section-label {
+      font-size: 0.75em;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--primary);
+      opacity: 0.5;
+      margin-bottom: 15px;
+    }
+
+    /* Cards – styled like riddle-container */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      border-left: 8px solid var(--accent);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      text-decoration: none;
+      color: var(--primary);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 25px rgba(42,28,94,0.15);
+    }
+
+    .card-label {
+      font-size: 0.7em;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    .card-title { font-size: 2em; font-weight: bold; line-height: 1.1; }
+
+    .card-desc { font-size: 0.85em; opacity: 0.65; line-height: 1.5; }
+
+    .card-arrow {
+      margin-top: 8px;
+      font-size: 1.1em;
+      color: var(--accent);
+      font-weight: bold;
+    }
+
+    footer {
+      width: 100%;
+      max-width: 850px;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.75em;
+      color: var(--primary);
+      opacity: 0.5;
+      border-top: 1px solid rgba(42,28,94,0.1);
+      margin-top: auto;
+    }
+
+    footer a { color: var(--primary); }
+    footer a:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div id="site-header">
+    <h1>🌍 Geo</h1>
+    <span>Ukentlig innhold</span>
+  </div>
+
+  <div id="game-container">
+    <p class="section-label">Velg en uke</p>
+    <nav class="cards">
+
+      <a class="card" href="uke17/">
+        <span class="card-label">Uke</span>
+        <span class="card-title">17</span>
+        <span class="card-desc">Innhold for uke 17</span>
+        <span class="card-arrow">→</span>
+      </a>
+
+      <a class="card" href="uke18/">
+        <span class="card-label">Uke</span>
+        <span class="card-title">18</span>
+        <span class="card-desc">Innhold for uke 18</span>
+        <span class="card-arrow">→</span>
+      </a>
+
+    </nav>
+  </div>
+
+  <footer>
+    <span>geo — <a href="https://github.com/ghveem/geo" target="_blank" rel="noopener">github.com/ghveem/geo</a> · <a href="https://ghveem.github.io/geo/" target="_blank" rel="noopener">ghveem.github.io/geo</a></span>
+    <span>Én index.html per mappe</span>
+  </footer>
+
+</body>
+</html>
