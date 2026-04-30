@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDLAs geografigåter</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        :root {
+            --primary: #2A1C5E;
+            --accent: #63F293;
+            --bg: #f4f4f9;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; padding: 0; background-color: var(--bg); 
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        #welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; text-align: center; padding: 20px; box-sizing: border-box;
+        }
+
+        #welcome-screen h1 { color: var(--accent); font-size: 2.5em; margin-bottom: 0.5em; }
+        #welcome-screen p { font-size: 1.2em; max-width: 600px; margin-bottom: 2em; }
+
+        #game-container { display: none; width: 100%; max-width: 850px; padding: 20px; box-sizing: border-box; }
+
+        #game-header { 
+            display: flex; justify-content: space-between; 
+            background: white; padding: 15px 25px; border-radius: 50px;
+            margin-bottom: 20px; color: var(--primary); font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        #riddle-container { 
+            background: white; padding: 25px; border-radius: 15px; 
+            margin-bottom: 20px; font-size: 1.1em; border-left: 8px solid var(--accent);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            line-height: 1.5;
+        }
+
+        #map { 
+            height: 450px; width: 100%; border-radius: 15px; 
+            border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: #ddd; /* Viser grått hvis kartflisene ikke lastes */
+        }
+
+        .btn { 
+            padding: 15px 40px; font-size: 1.1em; cursor: pointer; 
+            border: none; border-radius: 50px; font-weight: bold; 
+            transition: all 0.2s; background: var(--primary); color: white;
+            margin-top: 20px;
+        }
+
+        .btn:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.2); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        #next-btn { background: var(--accent); color: var(--primary); display: none; }
+
+        #result { margin-top: 15px; font-size: 1.1em; font-weight: bold; min-height: 1.5em; text-align: center; }
+
+        #game-over { 
+            display: none; background: white; padding: 60px; border-radius: 25px; 
+            text-align: center; margin-top: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-screen">
+        <h1>Velkommen til NDLAs geografigåter!</h1>
+        <p>Denne uka skal du finne steder som er omtalt i ulike ressurser på ndla.no.</p>
+        <p>PS: Du kan zoome i kartet før du velger hvor du vil plassere nålen.</p>
+        <button class="btn" style="background: var(--accent); color: var(--primary);" onclick="startGame()">Start spillet!</button>
+    </div>
+
+    <div id="game-container">
+        <div id="game-header">
+            <span id="level-counter">Nivå: 1 / 5</span>
+            <span id="score-counter">Poeng: 0</span>
+        </div>
+
+        <div id="riddle-container">Laster gåte...</div>
+        
+        <div id="map"></div>
+
+        <div style="text-align: center;">
+            <button id="guess-btn" class="btn" onclick="sjekkSvar()" disabled>Lås inn svaret mitt!</button>
+            <button id="next-btn" class="btn" onclick="nesteNiva()">Neste oppgave ➔</button>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <div id="game-over">
+        <h2>🎉 Fantastisk innsats!</h2>
+        <p>Din totale poengsum ble:</p>
+        <h1 id="final-score" style="font-size: 4em; color: var(--primary); margin: 10px 0;">0</h1>
+        <button class="btn" onclick="location.reload()">Spill igjen</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        const gater = [
+            { 
+                riddle: "Vi skal til en by omtalt i en ressurs med utdrag fra en tekst skrevet av Émile, hvor en person oppsøker likhuset i byen. Byen er også omtalt i en ressurs om fredsoppgjøret etter første verdenskrig.", 
+                lat: 48.8566, lng: 2.3522, radius: 10000, navn: "Paris" 
+            },
+            { 
+                riddle: "Det neste stedet vi skal til er både et land og en by. Det er omtalt i en artikkel om flerspråklighet, men også i en artikkel i geografifaget om noe asiatiske tigre...", 
+                lat: 1.3521, lng: 103.8198, radius: 10000, navn: "Singapore" 
+            },
+            { 
+                riddle: "Vi skal hjem igjen. Denne gangen til en by hvor man i norskfaget spør om kj-lyden vil forsvinne fra talespråket i denne byen. Ved søk dukker også både buddhismen og en tegneøvelse i Kunst og visuelle virkemidler opp.", 
+                lat: 58.0267, lng: 7.4534, radius: 2000, navn: "Mandal" 
+            },
+            { 
+                riddle: "På ndla.no finner du en film om et 100 år ungt menneske fra denne byen i Helsefremmende arbeid. Stedet er også omtalt i en fagartikkel om kalkyler i tjenesteytende bedrifter i matematikk, og i forbindelse med en type safari i Innovasjon og markedsføring.", 
+                lat: 69.6492, lng: 18.9553, radius: 5000, navn: "Tromsø" 
+            },
+            { 
+                riddle: "Det siste stedet vi skal til er både omtalt i en ressurs i tyskfaget om substantiv, du skal regne deg fram til lufttrykket her i en oppgave i 2P, og du får spørsmål om dette 'punktet' i en oppgave som handler om å få grunnleggende geografisk oversikt.", 
+                lat: 61.6365, lng: 8.3125, radius: 100, navn: "Galdhøpiggen" 
+            }
+        ];
+
+        let index = 0;
+        let totalScore = 0;
+        let map, marker, circle, line;
+
+        function startGame() {
+            // Skjul velkomst, vis spill
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+            
+            // Initialiser kartet hvis det ikke allerede er gjort
+            if (!map) {
+                map = L.map('map').setView([20, 10], 2);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                map.on('click', function(e) {
+                    if (document.getElementById('guess-btn').style.display !== "none") {
+                        plasserMarker(e.latlng);
+                    }
+                });
+            }
+
+            // Tving Leaflet til å sjekke størrelsen på beholderen nå som den er synlig
+            setTimeout(() => {
+                map.invalidateSize();
+                oppdaterGrensesnitt();
+            }, 100);
+        }
+
+        function plasserMarker(latlng) {
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+            document.getElementById('guess-btn').disabled = false;
+        }
+
+        function oppdaterGrensesnitt() {
+            const oppgave = gater[index];
+            document.getElementById('riddle-container').innerHTML = `<strong>Hvor skal vi?</strong><br>${oppgave.riddle}`;
+            document.getElementById('level-counter').innerText = `Nivå: ${index + 1} / ${gater.length}`;
+            document.getElementById('result').innerText = "";
+            document.getElementById('guess-btn').style.display = "inline-block";
+            document.getElementById('guess-btn').disabled = true;
+            document.getElementById('next-btn').style.display = "none";
+            
+            if (marker) map.removeLayer(marker);
+            if (circle) map.removeLayer(circle);
+            if (line) map.removeLayer(line);
+            marker = null;
+
+            // Startvisning basert på oppgave
+            if (index < 2) {
+                map.setView([20, 10], 2);
+            } else {
+                map.setView([65, 15], 4);
+            }
+        }
+
+        function sjekkSvar() {
+            const oppgave = gater[index];
+            const avstandMeter = map.distance(marker.getLatLng(), [oppgave.lat, oppgave.lng]);
+            const avstandKm = avstandMeter / 1000;
+            
+            let poeng = 0;
+            if (avstandMeter <= oppgave.radius) {
+                poeng = 100;
+            } else {
+                // Poengtrekk basert på avstand utenfor radius
+                poeng = Math.max(0, 100 - Math.floor((avstandMeter - oppgave.radius) / 5000)); 
+            }
+            
+            totalScore += poeng;
+
+            circle = L.circle([oppgave.lat, oppgave.lng], { 
+                color: '#63F293', fillColor: '#63F293', fillOpacity: 0.5, radius: oppgave.radius 
+            }).addTo(map);
+            
+            line = L.polyline([marker.getLatLng(), [oppgave.lat, oppgave.lng]], { 
+                color: '#2A1C5E', dashArray: '5, 10', weight: 2 
+            }).addTo(map);
+            
+            const group = new L.featureGroup([marker, circle]);
+            map.fitBounds(group.getBounds().pad(0.2));
+
+            let tilbakemelding = avstandMeter <= oppgave.radius ? 
+                "Perfekt! Du er innenfor radiusen." : 
+                `Bommen var på ${avstandKm.toFixed(1)} km.`;
+
+            document.getElementById('result').innerHTML = `Fasit: <b>${oppgave.navn}</b><br>${tilbakemelding} Du fikk ${poeng} poeng!`;
+            document.getElementById('score-counter').innerText = `Poeng: ${totalScore}`;
+            
+            document.getElementById('guess-btn').style.display = "none";
+            document.getElementById('next-btn').style.display = "inline-block";
+        }
+
+        function nesteNiva() {
+            index++;
+            if (index < gater.length) {
+                oppdaterGrensesnitt();
+            } else {
+                document.getElementById('game-container').style.display = 'none';
+                document.getElementById('game-over').style.display = 'block';
+                document.getElementById('final-score').innerText = totalScore;
+            }
+        }
+    </script>
+</body>
+</html>
