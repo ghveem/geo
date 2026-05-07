@@ -69,6 +69,24 @@
             display: none; background: white; padding: 60px; border-radius: 25px; 
             text-align: center; margin-top: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
+        footer {
+            width: 100%;
+            max-width: 850px;
+            margin: 30px 20px 40px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: center;
+            color: var(--primary);
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        footer a {
+            color: inherit;
+        }
     </style>
 </head>
 <body>
@@ -77,6 +95,7 @@
         <h1>Velkommen til NDLAs geografigåter!</h1>
         <p>Denne uka skal du finne steder som er omtalt i ulike ressurser på ndla.no.</p>
         <p>PS: Du kan zoome i kartet før du velger hvor du vil plassere nålen.</p>
+        <p>Geografigåteri er korte spill som utfordrer både quiz- og kartkunnskapen din, laga av Hans Græsli/@hansgrasli.</p>
         <button class="btn" style="background: var(--accent); color: var(--primary);" onclick="startGame()">Start spillet!</button>
     </div>
 
@@ -239,5 +258,10 @@
             }
         }
     </script>
+    
+    <footer>
+        <span>Geografigåteri — <a href="https://github.com/ghveem/geo" target="_blank" rel="noopener">github.com/ghveem/geo</a> · <a href="https://ghveem.github.io/geo/" target="_blank" rel="noopener">ghveem.github.io/geo</a></span>
+        <span>Ide, plan og konsept av <a href="https://github.com/hansgrasli" target="_blank" rel="noopener">@hansgrasli</a></span>
+    </footer>
 </body>
 </html>
