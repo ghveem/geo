@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NDLAs geografigåteri</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        :root {
+            --primary: #2A1C5E;
+            --accent: #63F293;
+            --bg: #f4f4f9;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; padding: 0; background-color: var(--bg); 
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        #welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary); color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; text-align: center; padding: 20px; box-sizing: border-box;
+        }
+
+        #welcome-screen h1 { color: var(--accent); font-size: 2.5em; margin-bottom: 0.5em; }
+        #welcome-screen p { font-size: 1.2em; max-width: 600px; margin-bottom: 2em; }
+
+        #game-container { display: none; width: 100%; max-width: 850px; padding: 20px; box-sizing: border-box; }
+
+        #game-header { 
+            display: flex; justify-content: space-between; 
+            background: white; padding: 15px 25px; border-radius: 50px;
+            margin-bottom: 20px; color: var(--primary); font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        #riddle-container { 
+            background: white; padding: 25px; border-radius: 15px; 
+            margin-bottom: 20px; font-size: 1.1em; border-left: 8px solid var(--accent);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            line-height: 1.5;
+        }
+
+        #map { 
+            height: 450px; width: 100%; border-radius: 15px; 
+            border: 4px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: #ddd;
+        }
+
+        .btn { 
+            padding: 15px 40px; font-size: 1.1em; cursor: pointer; 
+            border: none; border-radius: 50px; font-weight: bold; 
+            transition: all 0.2s; background: var(--primary); color: white;
+            margin-top: 20px;
+        }
+
+        .btn:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.2); }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        #next-btn { background: var(--accent); color: var(--primary); display: none; }
+
+        #result { margin-top: 15px; font-size: 1.1em; font-weight: bold; min-height: 1.5em; text-align: center; }
+
+        #game-over { 
+            display: none; background: white; padding: 60px; border-radius: 25px; 
+            text-align: center; margin-top: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-screen">
+        <h1>Velkommen til NDLAs geografigåteri!</h1>
+        <p>Klarer du å finne de fem skjulte hovedstedene på kartet? Lykke til!</p>
+        <p>PS: Du kan zoome i kartet før du velger hvor du vil plassere nålen.</p>
+        <button class="btn" style="background: var(--accent); color: var(--primary);" onclick="startGame()">Start spillet!</button>
+    </div>
+
+    <div id="game-container">
+        <div id="game-header">
+            <span id="level-counter">Nivå: 1 / 5</span>
+            <span id="score-counter">Poeng: 0</span>
+        </div>
+
+        <div id="riddle-container">Laster gåte...</div>
+        
+        <div id="map"></div>
+
+        <div style="text-align: center;">
+            <button id="guess-btn" class="btn" onclick="sjekkSvar()" disabled>Lås inn svaret mitt!</button>
+            <button id="next-btn" class="btn" onclick="nesteNiva()">Neste oppgave ➔</button>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <div id="game-over">
+        <h2>🎉 Fantastisk innsats!</h2>
+        <p>Din totale poengsum ble:</p>
+        <h1 id="final-score" style="font-size: 4em; color: var(--primary); margin: 10px 0;">0</h1>
+        <button class="btn" onclick="location.reload()">Spill igjen</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        const gater = [
+            { 
+                riddle: "Vi skal frem til en høytliggende hovedstad langt fra havet. Med norsk skrivemåte er det bare to a-er i navnet, mens det på engelsk er hele 5-ar. Hvor skal vi?", 
+                lat: 47.8864, lng: 106.9057, radius: 20000, navn: "Ulan Bator" 
+            },
+            { 
+                riddle: "I denne hovedstaden bor det i underkant av 4 millioner mennesker. Norman Foster har tegnet den nye kuppelen. I 2020 åpnet en ny hovedflyplass oppkalt etter W.B.", 
+                lat: 52.5200, lng: 13.4050, radius: 20000, navn: "Berlin" 
+            },
+            { 
+                riddle: "Nå skal vi til et helt annet sted. Dette er hovedstaden i et land som deler øya med et annet land. Landet vi skal til er det klart minst utviklede av de to, og ble hardt rammet av en naturkatastrofe i 2010. Finner du hovedstaden?", 
+                lat: 18.5392, lng: -72.3350, radius: 20000, navn: "Port-au-Prince" 
+            },
+            { 
+                riddle: "Vi reiser til en annen øynasjon på andre siden av kloden. Dette er et godt utviklet land, og de er eksperter på chipper. Landet er stadig truet av en mektig nabo. Dra til hovedstaden!", 
+                lat: 25.0330, lng: 121.5654, radius: 20000, navn: "Taipei" 
+            },
+            { 
+                riddle: "Vi avslutter med en by som var hovedstad fram til 1960, og som gjerne kalles det samme som et nytt rødkledd stjerneskudd nordvest i England. I denne byen tar de gjerne imot turister, arrangerer OL eller kler seg ut. Hvor skal vi?", 
+                lat: -22.9068, lng: -43.1729, radius: 20000, navn: "Rio de Janeiro" 
+            }
+        ];
+
+        let index = 0;
+        let totalScore = 0;
+        let map, marker, circle, line;
+
+        function startGame() {
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+            
+            if (!map) {
+                map = L.map('map').setView([20, 10], 2);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                map.on('click', function(e) {
+                    if (document.getElementById('guess-btn').style.display !== "none") {
+                        plasserMarker(e.latlng);
+                    }
+                });
+            }
+
+            setTimeout(() => {
+                map.invalidateSize();
+                oppdaterGrensesnitt();
+            }, 100);
+        }
+
+        function plasserMarker(latlng) {
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+            document.getElementById('guess-btn').disabled = false;
+        }
+
+        function oppdaterGrensesnitt() {
+            const oppgave = gater[index];
+            document.getElementById('riddle-container').innerHTML = `<strong>Hvor skal vi?</strong><br>${oppgave.riddle}`;
+            document.getElementById('level-counter').innerText = `Nivå: ${index + 1} / ${gater.length}`;
+            document.getElementById('result').innerText = "";
+            document.getElementById('guess-btn').style.display = "inline-block";
+            document.getElementById('guess-btn').disabled = true;
+            document.getElementById('next-btn').style.display = "none";
+            
+            if (marker) map.removeLayer(marker);
+            if (circle) map.removeLayer(circle);
+            if (line) map.removeLayer(line);
+            marker = null;
+
+            // Nullstill kartet til global visning for hver oppgave
+            map.setView([20, 10], 2);
+        }
+
+        function sjekkSvar() {
+            const oppgave = gater[index];
+            const avstandMeter = map.distance(marker.getLatLng(), [oppgave.lat, oppgave.lng]);
+            const avstandKm = avstandMeter / 1000;
+            
+            let poeng = 0;
+            if (avstandMeter <= oppgave.radius) {
+                poeng = 100;
+            } else {
+                // Poengtrekk basert på avstand (5000 km avstand gir 0 poeng på verdensbasis)
+                poeng = Math.max(0, 100 - Math.floor(avstandMeter / 50000)); 
+            }
+            
+            totalScore += poeng;
+
+            circle = L.circle([oppgave.lat, oppgave.lng], { 
+                color: '#63F293', fillColor: '#63F293', fillOpacity: 0.5, radius: oppgave.radius 
+            }).addTo(map);
+            
+            line = L.polyline([marker.getLatLng(), [oppgave.lat, oppgave.lng]], { 
+                color: '#2A1C5E', dashArray: '5, 10', weight: 2 
+            }).addTo(map);
+            
+            const group = new L.featureGroup([marker, circle]);
+            map.fitBounds(group.getBounds().pad(0.5));
+
+            let tilbakemelding = avstandMeter <= oppgave.radius ? 
+                "Perfekt! Du fant frem!" : 
+                `Bommen var på ${avstandKm.toFixed(0)} km.`;
+
+            document.getElementById('result').innerHTML = `Fasit: <b>${oppgave.navn}</b><br>${tilbakemelding} Du fikk ${poeng} poeng!`;
+            document.getElementById('score-counter').innerText = `Poeng: ${totalScore}`;
+            
+            document.getElementById('guess-btn').style.display = "none";
+            document.getElementById('next-btn').style.display = "inline-block";
+        }
+
+        function nesteNiva() {
+            index++;
+            if (index < gater.length) {
+                oppdaterGrensesnitt();
+            } else {
+                document.getElementById('game-container').style.display = 'none';
+                document.getElementById('game-over').style.display = 'block';
+                document.getElementById('final-score').innerText = totalScore;
+            }
+        }
+    </script>
+</body>
+</html>
