@@ -1,6 +1,9 @@
 # Geografigåteri
-Geografigåteri er korte spill som utfordrer både quiz- og kartkunnskapen din, laga av Hans Græsli/@hansgrasli.
-Statisk nettsted med ukentlig innhold. Strukturen er enkel: én `index.html` per mappe. Rotmappen inneholder en meny som lenker til alle ukemappene.
+Geografigåteri er korte spill som utfordrer både quiz- og kartkunnskapen din, laga av Hans Græsli/@hansgrasli. 
+
+Statisk nettsted med ukentlig innhold. 
+
+Strukturen er enkel: én `index.html` per mappe. Rotmappen inneholder en meny som lenker til alle ukemappene.
 
 ## Struktur
 
