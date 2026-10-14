@@ -14,6 +14,8 @@ geo/
 │   └── index.html      # Innhold for uke 17
 ├── uke18/
 │   └── index.html      # Innhold for uke 18
+├── uke19/
+│   └── index.html      # Innhold for uke 19
 └── README.md
 ```
 
@@ -36,6 +38,7 @@ Live: [https://ghveem.github.io/geo/](https://ghveem.github.io/geo/)
 |-----|-----|
 | 17 | https://ghveem.github.io/geo/uke17/ |
 | 18 | https://ghveem.github.io/geo/uke18/ |
+| 19 | https://ghveem.github.io/geo/uke19/ |
 
 ## Legge til en ny uke
 
@@ -48,5 +51,6 @@ Live: [https://ghveem.github.io/geo/](https://ghveem.github.io/geo/)
   <span class="card-label">Uke</span>
   <span class="card-title">19</span>
   <span class="card-desc">Innhold for uke 19</span>
+  <span class="card-arrow">→</span>
 </a>
 ```
