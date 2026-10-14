@@ -13,7 +13,7 @@ Geografigåteri: korte kartspel der spelaren les ei gåte og klikkar på rett st
 - Fargar i `:root` på kvar side: `--primary: #2A1C5E` og `--accent: #63F293`.
 
 ## Fallgruver
-- Ny veke krev både ny mappe og nytt kort i rot-`index.html`. Kopier eit eksisterande kort med `card-arrow` (kortet for veke 19 manglar det).
+- Ny veke krev både ny mappe og nytt kort i rot-`index.html`. Kopier eit eksisterande kort med `card-arrow`.
 - Kvar side har sin eigen kopi av CSS og JS. Endringar i felles stil eller logikk må gjerast i alle filene.
 - `uke17` lastar `leaflet-control-geocoder` frå unpkg utan låst versjon, og gåtene der har ikkje `radius`.
 - Speltekstane er på bokmål. Ikkje omset dei utan at det er bede om.
