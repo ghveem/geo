@@ -51,5 +51,6 @@ Live: [https://ghveem.github.io/geo/](https://ghveem.github.io/geo/)
   <span class="card-label">Uke</span>
   <span class="card-title">19</span>
   <span class="card-desc">Innhold for uke 19</span>
+  <span class="card-arrow">→</span>
 </a>
 ```
