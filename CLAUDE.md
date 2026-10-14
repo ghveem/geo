@@ -15,7 +15,7 @@ Geografigåteri: korte kartspel der spelaren les ei gåte og klikkar på rett st
 ## Fallgruver
 - Ny veke krev både ny mappe og nytt kort i rot-`index.html`. Kopier eit eksisterande kort med `card-arrow`.
 - Kvar side har sin eigen kopi av CSS og JS. Endringar i felles stil eller logikk må gjerast i alle filene.
-- `uke17` lastar `leaflet-control-geocoder` frå unpkg utan låst versjon, og gåtene der har ikkje `radius`.
+- `uke17` lastar `leaflet-control-geocoder` 4.0.0 frå unpkg (låst versjon, men biblioteket blir ikkje brukt i koden), og gåtene der har ikkje `radius`.
 - Speltekstane er på bokmål. Ikkje omset dei utan at det er bede om.
 - Alt i repoet blir publisert offentleg. Ikkje legg inn filer eller persondata som ikkje skal vere ope tilgjengelege.
 
